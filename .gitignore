@@ -1,24 +1,55 @@
-# Compiled class file
-*.class
+# Maven
+target/
+.flattened-pom.xml
+**/*.flattened-pom.xml
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
 
-# Log file
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+.factorypath
+
+# Logs
 *.log
+logs/
 
-# BlueJ files
-*.ctxt
+# OS-specific files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+# Temporary files
+*~
+.*.swp
+.*.swo
+*.tmp
+tmp/
+temp/
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+# Build logs
+build.log
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Java
 hs_err_pid*
 replay_pid*
