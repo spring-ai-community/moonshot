@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
     <name>Moonshot AI Parent</name>
     <description>Moonshot AI Java Client</description>
-    <url>https://github.com/moonshot-ai/moonshot-java</url>
+    <url>https://github.com/spring-ai-community/moonshot</url>
 
     <licenses>
         <license>
@@ -20,13 +20,14 @@
     </licenses>
 
     <scm>
-        <url>https://github.com/moonshot-ai/moonshot-java</url>
-        <connection>git://github.com/moonshot-ai/moonshot-java.git</connection>
-        <developerConnection>git@github.com:moonshot-ai/moonshot-java.git</developerConnection>
+        <url>https://github.com/spring-ai-community/moonshot</url>
+        <connection>git://github.com/spring-ai-community/moonshot.git</connection>
+        <developerConnection>git@github.com:spring-ai-community/moonshot.git</developerConnection>
     </scm>
 
     <modules>
         <module>moonshot-core</module>
+        <module>docs</module>
     </modules>
 
     <properties>

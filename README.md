@@ -8,15 +8,17 @@ The Moonshot AI Java Client is organized as a multi-module Maven project:
 
 - `moonshot-parent`: The parent POM with dependency management
 - `moonshot-core`: The core implementation of the Moonshot AI client
+- `docs`: Documentation module built with Antora
 
 ## Features
 
-- Complete implementation of the Moonshot API
-- Support for chat completions
-- Support for streaming responses
-- Function calling capability
-- Retry mechanism for API calls
-- Observation and metrics support via Micrometer
+- **Chat Models**: Comprehensive implementation of the Moonshot Chat API supporting models like `moonshot-v1-8k`, `moonshot-v1-32k`, and `moonshot-v1-128k`
+- **Flexible Configuration**: Extensive customization options including temperature, max tokens, top-p sampling, and more
+- **Streaming Responses**: Support for token-by-token streaming responses for interactive applications
+- **Function Calling**: Register custom Java functions that Moonshot models can intelligently invoke with appropriate arguments
+- **Robust Error Handling**: Built-in retry mechanism with configurable exponential backoff for handling transient errors
+- **Observability**: Integration with Micrometer for metrics collection and performance monitoring
+- **Type Safety**: Fully typed API that provides compile-time safety and excellent IDE support
 
 ## Requirements
 
@@ -30,6 +32,17 @@ To build the project from source, run:
 ```bash
 ./mvnw clean install
 ```
+
+### Building the Documentation
+
+To build the documentation locally:
+
+```bash
+cd docs
+../mvnw antora:antora
+```
+
+The generated documentation will be available at `docs/target/antora/site/`.
 
 ## Usage
 

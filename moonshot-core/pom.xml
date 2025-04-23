@@ -13,6 +13,13 @@
     <packaging>jar</packaging>
     <name>Moonshot AI Core</name>
     <description>Moonshot AI Java Client Core Implementation</description>
+    <url>https://github.com/spring-ai-community/moonshot</url>
+    
+    <scm>
+        <url>https://github.com/spring-ai-community/moonshot</url>
+        <connection>git://github.com/spring-ai-community/moonshot.git</connection>
+        <developerConnection>git@github.com:spring-ai-community/moonshot.git</developerConnection>
+    </scm>
 
     <dependencies>
         <!-- Production dependencies -->

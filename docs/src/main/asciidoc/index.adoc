@@ -1,0 +1,319 @@
+= Moonshot AI Java Client
+:toc: left
+:tabsize: 2
+:sectnums:
+
+Moonshot AI Java Client is a community-maintained library for working with the Moonshot AI platform. It is based on the Spring AI project's Moonshot integration and has been extracted to be used as a standalone library.
+
+== Overview
+
+This library provides a Java client for interacting with Moonshot AI's language models, allowing you to create applications that use Moonshot's capabilities for natural language understanding and generation.
+
+== Features
+
+* Complete implementation of the Moonshot API
+* Support for chat completions
+* Support for streaming responses
+* Function calling capability
+* Retry mechanism for API calls
+* Observation and metrics support via Micrometer
+
+== Requirements
+
+* Java 17 or higher
+* Maven 3.6.3 or higher
+
+== Getting Started
+
+=== Prerequisites
+
+Before you begin, ensure you have the following:
+
+* Java 17 or higher
+* Maven 3.6.3 or higher
+* A Moonshot AI API key
+
+==== Obtaining an API Key
+
+You will need to create an API key with Moonshot to access Moonshot AI language models.
+Create an account at https://platform.moonshot.cn/console[Moonshot AI registration page] and generate the API key on the https://platform.moonshot.cn/console/api-keys/[API Keys page].
+
+=== Adding the Library to Your Project
+
+==== Maven
+
+Add the following dependency to your `pom.xml`:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springframework.ai.moonshot</groupId>
+    <artifactId>moonshot-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+==== Gradle
+
+Add the following dependency to your `build.gradle`:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'org.springframework.ai.moonshot:moonshot-core:0.1.0-SNAPSHOT'
+}
+----
+
+=== Quick Start Example
+
+Here's a simple example of using the Moonshot AI Java Client:
+
+[source,java]
+----
+import org.springframework.ai.chat.ChatResponse;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.moonshot.MoonshotChatModel;
+import org.springframework.ai.moonshot.MoonshotChatOptions;
+import org.springframework.ai.moonshot.api.MoonshotApi;
+
+public class MoonshotQuickStart {
+
+    public static void main(String[] args) {
+        // Create the Moonshot API client with your API key
+        String apiKey = System.getenv("MOONSHOT_API_KEY");
+        MoonshotApi moonshotApi = new MoonshotApi(apiKey);
+
+        // Create the chat model with default options
+        MoonshotChatModel chatModel = new MoonshotChatModel(moonshotApi);
+
+        // Create a prompt with a user message
+        UserMessage userMessage = new UserMessage("Tell me a joke about programming");
+        Prompt prompt = new Prompt(userMessage);
+
+        // Get the response
+        ChatResponse response = chatModel.call(prompt);
+
+        // Print the response content
+        System.out.println(response.getResult().getOutput().getContent());
+    }
+}
+----
+
+== Chat API
+
+=== Basic Usage
+
+The following example demonstrates how to use the Moonshot AI Java Client to interact with the Moonshot Chat API:
+
+[source,java]
+----
+// Create the Moonshot API client with your API key
+String apiKey = System.getenv("MOONSHOT_API_KEY");
+MoonshotApi moonshotApi = new MoonshotApi(apiKey);
+
+// Create the chat model with custom options
+var chatModel = new MoonshotChatModel(moonshotApi, MoonshotChatOptions.builder()
+        .model(MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue())
+        .temperature(0.4)
+        .maxTokens(200)
+        .build());
+
+// Create a prompt with a user message
+UserMessage userMessage = new UserMessage("Generate the names of 5 famous pirates.");
+Prompt prompt = new Prompt(userMessage);
+
+// Get the response
+ChatResponse response = chatModel.call(prompt);
+System.out.println(response.getResult().getOutput().getContent());
+----
+
+=== Streaming Responses
+
+You can also receive streaming responses from the Moonshot API:
+
+[source,java]
+----
+// Create a prompt with a user message
+UserMessage userMessage = new UserMessage("Tell me a long story about space exploration.");
+Prompt prompt = new Prompt(userMessage);
+
+// Get streaming response
+Flux<ChatResponse> streamResponse = chatModel.stream(prompt);
+
+// Process the streaming response
+streamResponse.subscribe(
+    chunk -> System.out.print(chunk.getResult().getOutput().getContent()),
+    error -> System.err.println("Error: " + error.getMessage()),
+    () -> System.out.println("\nStream completed.")
+);
+----
+
+=== Chat Options
+
+The `MoonshotChatOptions` class provides various configuration options for the chat API. These options can be set when creating the chat model or when sending individual prompts.
+
+[cols="3,5,1", stripes=even]
+|====
+| Option | Description | Default
+
+| model | The Moonshot Chat model to use (`moonshot-v1-8k`, `moonshot-v1-32k`, or `moonshot-v1-128k`) | `moonshot-v1-8k`
+| maxTokens | The maximum number of tokens to generate | -
+| temperature | Controls the randomness of the output (0.0-1.0) | 0.7
+| topP | Controls the diversity via nucleus sampling (0.0-1.0) | 1.0
+| n | Number of chat completions to generate per message | 1
+| presencePenalty | Penalizes new tokens based on whether they appear in the text so far (-2.0 to 2.0) | 0.0
+| frequencyPenalty | Penalizes new tokens based on their frequency in the text so far (-2.0 to 2.0) | 0.0
+| stop | Up to 5 sequences where the API will stop generating further tokens | -
+|====
+
+==== Setting Default Options
+
+You can set default options when creating the chat model:
+
+[source,java]
+----
+MoonshotChatOptions options = MoonshotChatOptions.builder()
+    .model(MoonshotApi.ChatModel.MOONSHOT_V1_32K.getValue())
+    .temperature(0.5)
+    .maxTokens(500)
+    .build();
+
+MoonshotChatModel chatModel = new MoonshotChatModel(moonshotApi, options);
+----
+
+==== Overriding Options for a Specific Prompt
+
+You can override the default options for a specific prompt:
+
+[source,java]
+----
+ChatResponse response = chatModel.call(
+    new Prompt(
+        "Generate the names of 5 famous pirates.",
+        MoonshotChatOptions.builder()
+            .model(MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue())
+            .temperature(0.8)
+            .build()
+    ));
+----
+
+== Function Calling
+
+You can register custom Java functions with the `MoonshotChatModel` and have the Moonshot model intelligently choose to output a JSON object containing arguments to call one or many of the registered functions.
+This allows you to connect the LLM capabilities with external tools and APIs.
+The Moonshot models are trained to detect when a function should be called and to respond with JSON that adheres to the function signature.
+
+The Moonshot API does not call the function directly; instead, the model generates JSON that you can use to call the function in your code and return the result back to the model to complete the conversation.
+
+=== Example: Weather Service
+
+Let's create a chatbot that answers questions by calling our own function.
+To support the response of the chatbot, we will register our own function that takes a location and returns the current weather in that location.
+
+Here's a sample implementation of a weather service:
+
+[source,java]
+----
+public class MockWeatherService implements Function<Request, Response> {
+
+    public enum Unit { C, F }
+    public record Request(String location, Unit unit) {}
+    public record Response(double temp, Unit unit) {}
+
+    public Response apply(Request request) {
+        return new Response(30.0, Unit.C);
+    }
+}
+----
+
+=== Using the FunctionCallback Builder
+
+One way to register a function is to create a `FunctionCallback` instance using the builder pattern:
+
+[source,java]
+----
+// Create the Moonshot API client
+MoonshotApi moonshotApi = new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+
+// Create the weather service
+MockWeatherService weatherService = new MockWeatherService();
+
+// Create the function callback
+FunctionCallback weatherFunction = FunctionCallback.builder()
+    .function("CurrentWeather", weatherService)  // function name and instance
+    .description("Get the weather in location")  // function description
+    .inputType(MockWeatherService.Request.class) // function signature
+    .build();
+
+// Create the chat model with the function callback
+MoonshotChatModel chatModel = new MoonshotChatModel(
+    moonshotApi, 
+    MoonshotChatOptions.builder().build(),
+    new FunctionCallbackResolver(List.of(weatherFunction)),
+    RetryUtils.DEFAULT_RETRY_TEMPLATE);
+
+// Create a prompt that will trigger the function
+UserMessage userMessage = new UserMessage("What's the weather like in San Francisco, Tokyo, and Paris?");
+
+// Enable the function for this prompt
+ChatResponse response = chatModel.call(new Prompt(
+    userMessage,
+    MoonshotChatOptions.builder().function("CurrentWeather").build()));
+
+System.out.println(response.getResult().getOutput().getContent());
+----
+
+== Low-level Moonshot API Client
+
+The `MoonshotApi` provides a lightweight Java client for the https://platform.moonshot.cn/docs/api-reference[Moonshot AI API].
+
+Here's an example of using the API directly:
+
+[source,java]
+----
+MoonshotApi moonshotApi = new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+
+ChatCompletionMessage chatCompletionMessage =
+    new ChatCompletionMessage("Hello world", Role.USER);
+
+// Synchronous request
+ResponseEntity<ChatCompletion> response = moonshotApi.chatCompletionEntity(
+    new ChatCompletionRequest(List.of(chatCompletionMessage), 
+        MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue(), 0.7, false));
+
+// Streaming request
+Flux<ChatCompletionChunk> streamResponse = moonshotApi.chatCompletionStream(
+    new ChatCompletionRequest(List.of(chatCompletionMessage), 
+        MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue(), 0.7, true));
+----
+
+== Contributing
+
+We welcome contributions to Moonshot AI Java Client! Please see our Contribution Guidelines for more information on how to get involved.
+
+=== Getting Started with Contributing
+
+1. Fork the repository on GitHub: https://github.com/spring-ai-community/moonshot
+2. Clone your fork to your local machine
+3. Create a feature branch for your changes
+4. Make your changes and add tests if applicable
+5. Run the tests with `./mvnw test`
+6. Push your branch to your fork
+7. Create a pull request from your fork to the main repository
+
+=== Building the Documentation
+
+To build the documentation locally:
+
+[source,bash]
+----
+cd docs
+../mvnw clean package
+----
+
+The generated documentation will be available at `docs/target/generated-docs/`.
+
+== License
+
+This project is licensed under the Apache License 2.0.

@@ -1,0 +1,161 @@
+= Function Calling
+:page-title: Function Calling with Moonshot AI
+:toc: left
+:tabsize: 2
+:sectnums:
+
+You can register custom Java functions with the `MoonshotChatModel` and have the Moonshot model intelligently choose to output a JSON object containing arguments to call one or many of the registered functions.
+This allows you to connect the LLM capabilities with external tools and APIs.
+The Moonshot models are trained to detect when a function should be called and to respond with JSON that adheres to the function signature.
+
+The Moonshot API does not call the function directly; instead, the model generates JSON that you can use to call the function in your code and return the result back to the model to complete the conversation.
+
+The Moonshot AI Java Client provides flexible and user-friendly ways to register and call custom functions.
+In general, the custom functions need to provide a function `name`, `description`, and the function call `signature` (as JSON schema) to let the model know what arguments the function expects. The `description` helps the model to understand when to call the function.
+
+As a developer, you need to implement a function that takes the function call arguments sent from the AI model, and responds with the result back to the model. Your function can in turn invoke other 3rd party services to provide the results.
+
+== How it works
+
+Suppose we want the AI model to respond with information that it does not have, for example the current temperature at a given location.
+
+We can provide the AI model with metadata about our own functions that it can use to retrieve that information as it processes your prompt.
+
+For example, if during the processing of a prompt, the AI model determines that it needs additional information about the temperature in a given location, it will start a server side generated request/response interaction. The AI model invokes a client side function.
+The AI model provides method invocation details as JSON and it is the responsibility of the client to execute that function and return the response.
+
+The Moonshot AI Java Client greatly simplifies the code you need to write to support function invocation.
+It brokers the function invocation conversation for you.
+
+== Quick Start Example
+
+Let's create a chatbot that answers questions by calling our own function.
+To support the response of the chatbot, we will register our own function that takes a location and returns the current weather in that location.
+
+When the response to the prompt to the model needs to answer a question such as `"What's the weather like in Boston?"` the AI model will invoke the client, providing the location value as an argument to be passed to the function. This RPC-like data is passed as JSON.
+
+Our function calls some SaaS based weather service API and returns the weather response back to the model to complete the conversation. In this example we will use a simple implementation named `MockWeatherService` that hard codes the temperature for various locations.
+
+The following `MockWeatherService.java` represents the weather service API:
+
+[source,java]
+----
+public class MockWeatherService implements Function<Request, Response> {
+
+    public enum Unit { C, F }
+    public record Request(String location, Unit unit) {}
+    public record Response(double temp, Unit unit) {}
+
+    public Response apply(Request request) {
+        return new Response(30.0, Unit.C);
+    }
+}
+----
+
+=== Using the FunctionCallback Builder
+
+One way to register a function is to create a `FunctionCallback` instance using the builder pattern:
+
+[source,java]
+----
+// Create the Moonshot API client
+MoonshotApi moonshotApi = new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+
+// Create the weather service
+MockWeatherService weatherService = new MockWeatherService();
+
+// Create the function callback
+FunctionCallback weatherFunction = FunctionCallback.builder()
+    .function("CurrentWeather", weatherService)  // function name and instance
+    .description("Get the weather in location")  // function description
+    .inputType(MockWeatherService.Request.class) // function signature
+    .build();
+
+// Create the chat model with the function callback
+MoonshotChatModel chatModel = new MoonshotChatModel(
+    moonshotApi, 
+    MoonshotChatOptions.builder().build(),
+    new FunctionCallbackResolver(List.of(weatherFunction)),
+    RetryUtils.DEFAULT_RETRY_TEMPLATE);
+
+// Create a prompt that will trigger the function
+UserMessage userMessage = new UserMessage("What's the weather like in San Francisco, Tokyo, and Paris?");
+
+// Enable the function for this prompt
+ChatResponse response = chatModel.call(new Prompt(
+    userMessage,
+    MoonshotChatOptions.builder().function("CurrentWeather").build()));
+
+System.out.println(response.getResult().getOutput().getContent());
+----
+
+In this example, we:
+1. Created a `FunctionCallback` for our weather service
+2. Registered it with the `MoonshotChatModel` via the `FunctionCallbackResolver`
+3. Enabled the function in the prompt options with `.function("CurrentWeather")`
+
+The above prompt will trigger 3 calls to the `CurrentWeather` function (one for each city) and the final response will be something like this:
+
+----
+Here is the current weather for the requested cities:
+- San Francisco, CA: 30.0°C
+- Tokyo, Japan: 30.0°C
+- Paris, France: 30.0°C
+----
+
+=== Register Functions with Prompt Options
+
+You can also register callback functions dynamically with your prompt requests:
+
+[source,java]
+----
+// Create the chat model
+MoonshotChatModel chatModel = new MoonshotChatModel(moonshotApi);
+
+// Create a user message
+UserMessage userMessage = new UserMessage("What's the weather like in San Francisco, Tokyo, and Paris?");
+
+// Create prompt options with the function callback
+var promptOptions = MoonshotChatOptions.builder()
+    .functionCallbacks(List.of(FunctionCallback.builder()
+        .function("CurrentWeather", new MockWeatherService())
+        .description("Get the weather in location")
+        .inputType(MockWeatherService.Request.class)
+        .build()))
+    .build();
+
+// Send the prompt with the function callback
+ChatResponse response = chatModel.call(new Prompt(userMessage, promptOptions));
+
+System.out.println(response.getResult().getOutput().getContent());
+----
+
+This approach allows you to dynamically choose different functions to be called based on the user input.
+
+== Enhancing Function Descriptions
+
+It's a best practice to annotate the request object with information such that the generated JSON schema of that function is as descriptive as possible to help the AI model pick the correct function to invoke.
+
+You can use the `@JsonClassDescription` annotation on the request class:
+
+[source,java]
+----
+@JsonClassDescription("Get the weather in location")
+public record Request(String location, Unit unit) {}
+----
+
+You can also add property descriptions:
+
+[source,java]
+----
+@JsonClassDescription("Get the weather in location")
+public record Request(
+    @JsonPropertyDescription("The city and state, e.g. San Francisco, CA") 
+    String location,
+    
+    @JsonPropertyDescription("The temperature unit (C for Celsius, F for Fahrenheit)") 
+    Unit unit
+) {}
+----
+
+These annotations help the model understand the purpose and expected values for each parameter, improving the quality of function calls.

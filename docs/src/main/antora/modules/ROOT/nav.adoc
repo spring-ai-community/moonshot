@@ -1,0 +1,5 @@
+* xref:index.adoc[Overview]
+* xref:getting-started.adoc[Getting Started]
+* xref:api/chat/moonshot-chat.adoc[Moonshot AI Chat]
+** xref:api/chat/functions/moonshot-chat-functions.adoc[Function Calling]
+* xref:contribution-guidelines.adoc[Contribution Guidelines]

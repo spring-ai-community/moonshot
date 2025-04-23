@@ -1,0 +1,98 @@
+= Getting Started
+:page-title: Getting Started with Moonshot AI Java Client
+:toc: left
+:tabsize: 2
+:sectnums:
+
+This guide will help you get started with the Moonshot AI Java Client.
+
+== Prerequisites
+
+Before you begin, ensure you have the following:
+
+* Java 17 or higher
+* Maven 3.6.3 or higher
+* A Moonshot AI API key
+
+=== Obtaining an API Key
+
+You will need to create an API key with Moonshot to access Moonshot AI language models.
+Create an account at https://platform.moonshot.cn/console[Moonshot AI registration page] and generate the API key on the https://platform.moonshot.cn/console/api-keys/[API Keys page].
+
+== Adding the Library to Your Project
+
+=== Maven
+
+Add the following dependency to your `pom.xml`:
+
+[source,xml]
+----
+<dependency>
+    <groupId>org.springframework.ai.moonshot</groupId>
+    <artifactId>moonshot-core</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
+----
+
+=== Gradle
+
+Add the following dependency to your `build.gradle`:
+
+[source,groovy]
+----
+dependencies {
+    implementation 'org.springframework.ai.moonshot:moonshot-core:0.1.0-SNAPSHOT'
+}
+----
+
+== Quick Start Example
+
+Here's a simple example of using the Moonshot AI Java Client:
+
+[source,java]
+----
+import org.springframework.ai.chat.ChatResponse;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.Prompt;
+import org.springframework.ai.moonshot.MoonshotChatModel;
+import org.springframework.ai.moonshot.MoonshotChatOptions;
+import org.springframework.ai.moonshot.api.MoonshotApi;
+
+public class MoonshotQuickStart {
+
+    public static void main(String[] args) {
+        // Create the Moonshot API client with your API key
+        String apiKey = System.getenv("MOONSHOT_API_KEY");
+        MoonshotApi moonshotApi = new MoonshotApi(apiKey);
+
+        // Create the chat model with default options
+        MoonshotChatModel chatModel = new MoonshotChatModel(moonshotApi);
+
+        // Create a prompt with a user message
+        UserMessage userMessage = new UserMessage("Tell me a joke about programming");
+        Prompt prompt = new Prompt(userMessage);
+
+        // Get the response
+        ChatResponse response = chatModel.call(prompt);
+
+        // Print the response content
+        System.out.println(response.getResult().getOutput().getContent());
+    }
+}
+----
+
+== Setting Environment Variables
+
+It's best practice to store your API key in an environment variable. You can set it with:
+
+[source,shell]
+----
+export MOONSHOT_API_KEY=your_api_key_here
+----
+
+== Next Steps
+
+Now that you have the Moonshot AI Java Client set up, you can:
+
+* Learn about the xref:api/chat/moonshot-chat.adoc[Chat API]
+* Explore xref:api/chat/functions/moonshot-chat-functions.adoc[Function Calling]
