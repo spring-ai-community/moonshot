@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.ai.moonshot</groupId>
+        <artifactId>moonshot-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>moonshot-spring-boot-starter</artifactId>
+    <packaging>jar</packaging>
+    <name>Moonshot AI Spring Boot Starter</name>
+    <description>Moonshot AI Spring Boot Starter</description>
+    <url>https://github.com/spring-ai-community/moonshot</url>
+
+    <scm>
+        <url>https://github.com/spring-ai-community/moonshot</url>
+        <connection>git://github.com/spring-ai-community/moonshot.git</connection>
+        <developerConnection>git@github.com:spring-ai-community/moonshot.git</developerConnection>
+    </scm>
+
+    <dependencies>
+        <!-- Core dependencies -->
+        <dependency>
+            <groupId>org.springframework.ai.moonshot</groupId>
+            <artifactId>moonshot-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        
+        <!-- Spring Boot Autoconfiguration -->
+        <dependency>
+            <groupId>org.springframework.ai.moonshot</groupId>
+            <artifactId>spring-ai-autoconfigure-model-moonshot</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        
+        <!-- Spring Boot Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <version>3.2.4</version>
+        </dependency>
+    </dependencies>
+</project>

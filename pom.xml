@@ -28,6 +28,8 @@
     <modules>
         <module>moonshot-core</module>
         <module>docs</module>
+        <module>spring-ai-autoconfigure-model-moonshot</module>
+        <module>moonshot-spring-boot-starter</module>
     </modules>
 
     <properties>
@@ -39,7 +41,7 @@
 
         <!-- Dependency versions -->
         <spring-framework.version>6.1.4</spring-framework.version>
-        <spring-ai.version>1.0.0-SNAPSHOT</spring-ai.version>
+        <spring-ai.version>1.0.0-M7</spring-ai.version>
         <micrometer.version>1.12.2</micrometer.version>
         <reactor.version>2023.0.2</reactor.version>
         <slf4j.version>2.0.9</slf4j.version>
@@ -95,6 +97,11 @@
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-retry</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-autoconfigure-retry</artifactId>
                 <version>${spring-ai.version}</version>
             </dependency>
             <dependency>
