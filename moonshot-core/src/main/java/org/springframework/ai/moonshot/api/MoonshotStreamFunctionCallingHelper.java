@@ -16,9 +16,6 @@
 
 package org.springframework.ai.moonshot.api;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionChunk;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionChunk.ChunkChoice;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionFinishReason;
@@ -27,6 +24,9 @@ import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.Cha
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.Role;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.ToolCall;
 import org.springframework.util.CollectionUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Helper class to support Streaming function calling. It can merge the streamed

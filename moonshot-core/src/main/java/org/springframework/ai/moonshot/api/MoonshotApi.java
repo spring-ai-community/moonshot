@@ -16,28 +16,34 @@
 
 package org.springframework.ai.moonshot.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.ai.model.ApiKey;
+import org.springframework.ai.model.ChatModelDescription;
+import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.model.SimpleApiKey;
+import org.springframework.ai.retry.RetryUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.Assert;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.ResponseErrorHandler;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import org.springframework.ai.model.ChatModelDescription;
-import org.springframework.ai.model.ModelOptionsUtils;
-import org.springframework.ai.retry.RetryUtils;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.Assert;
-import org.springframework.web.client.ResponseErrorHandler;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.reactive.function.client.WebClient;
+import static org.springframework.ai.moonshot.api.MoonshotConstants.DEFAULT_BASE_URL;
+import static org.springframework.ai.moonshot.api.MoonshotConstants.DEFAULT_COMPLETIONS_PATH;
 
 /**
  * Single-class, Java Client library for Moonshot platform. Provides implementation for
@@ -55,6 +61,8 @@ public class MoonshotApi {
 
 	private static final Predicate<String> SSE_DONE_PREDICATE = "[DONE]"::equals;
 
+	private final String completionsPath;
+
 	private final RestClient restClient;
 
 	private final WebClient webClient;
@@ -62,43 +70,38 @@ public class MoonshotApi {
 	private final MoonshotStreamFunctionCallingHelper chunkMerger = new MoonshotStreamFunctionCallingHelper();
 
 	/**
-	 * Create a new client api with DEFAULT_BASE_URL
-	 * @param moonshotApiKey Moonshot api Key.
-	 */
-	public MoonshotApi(String moonshotApiKey) {
-		this(org.springframework.ai.moonshot.api.MoonshotConstants.DEFAULT_BASE_URL, moonshotApiKey);
-	}
-
-	/**
-	 * Create a new client api.
+	 * Create a new chat completion api.
 	 * @param baseUrl api base URL.
-	 * @param moonshotApiKey Moonshot api Key.
-	 */
-	public MoonshotApi(String baseUrl, String moonshotApiKey) {
-		this(baseUrl, moonshotApiKey, RestClient.builder(), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
-	}
-
-	/**
-	 * Create a new client api.
-	 * @param baseUrl api base URL.
-	 * @param moonshotApiKey Moonshot api Key.
+	 * @param apiKey Moonshot apiKey.
+	 * @param headers the http headers to use.
+	 * @param completionsPath the path to the chat completions endpoint.
 	 * @param restClientBuilder RestClient builder.
+	 * @param webClientBuilder WebClient builder.
 	 * @param responseErrorHandler Response error handler.
 	 */
-	public MoonshotApi(String baseUrl, String moonshotApiKey, RestClient.Builder restClientBuilder,
+	public MoonshotApi(String baseUrl, ApiKey apiKey, MultiValueMap<String, String> headers, String completionsPath,
+			RestClient.Builder restClientBuilder, WebClient.Builder webClientBuilder,
 			ResponseErrorHandler responseErrorHandler) {
 
-		Consumer<HttpHeaders> jsonContentHeaders = headers -> {
-			headers.setBearerAuth(moonshotApiKey);
-			headers.setContentType(MediaType.APPLICATION_JSON);
+		Assert.hasText(completionsPath, "Completions Path must not be null");
+		Assert.notNull(headers, "Headers must not be null");
+
+		this.completionsPath = completionsPath;
+		// @formatter:off
+		Consumer<HttpHeaders> finalHeaders = h -> {
+			h.setBearerAuth(apiKey.getValue());
+			h.setContentType(MediaType.APPLICATION_JSON);
+			h.addAll(headers);
 		};
-
 		this.restClient = restClientBuilder.baseUrl(baseUrl)
-			.defaultHeaders(jsonContentHeaders)
-			.defaultStatusHandler(responseErrorHandler)
-			.build();
+				.defaultHeaders(finalHeaders)
+				.defaultStatusHandler(responseErrorHandler)
+				.build();
 
-		this.webClient = WebClient.builder().baseUrl(baseUrl).defaultHeaders(jsonContentHeaders).build();
+		this.webClient = webClientBuilder
+				.baseUrl(baseUrl)
+				.defaultHeaders(finalHeaders)
+				.build(); // @formatter:on
 	}
 
 	/**
@@ -112,11 +115,7 @@ public class MoonshotApi {
 		Assert.notNull(chatRequest, "The request body can not be null.");
 		Assert.isTrue(!chatRequest.stream(), "Request must set the stream property to false.");
 
-		return this.restClient.post()
-			.uri("/v1/chat/completions")
-			.body(chatRequest)
-			.retrieve()
-			.toEntity(ChatCompletion.class);
+		return this.restClient.post().uri(completionsPath).body(chatRequest).retrieve().toEntity(ChatCompletion.class);
 	}
 
 	/**
@@ -131,7 +130,7 @@ public class MoonshotApi {
 		AtomicBoolean isInsideTool = new AtomicBoolean(false);
 
 		return this.webClient.post()
-			.uri("/v1/chat/completions")
+			.uri(completionsPath)
 			.body(Mono.just(chatRequest), ChatCompletionRequest.class)
 			.retrieve()
 			.bodyToFlux(String.class)
@@ -502,21 +501,21 @@ public class MoonshotApi {
 	 * input.
 	 *
 	 * @param id A unique identifier for the chat completion.
-	 * @param object The object type, which is always chat.completion.
+	 * @param choices A list of chat completion choices.
 	 * @param created The Unix timestamp (in seconds) of when the chat completion was
 	 * created.
 	 * @param model The model used for the chat completion.
-	 * @param choices A list of chat completion choices.
+	 * @param object The object type, which is always chat.completion.
 	 * @param usage Usage statistics for the completion request.
 	 */
 	@JsonInclude(Include.NON_NULL)
 	public record ChatCompletion(
 	// @formatter:off
 		@JsonProperty("id") String id,
-		@JsonProperty("object") String object,
+		@JsonProperty("choices") List<Choice> choices,
 		@JsonProperty("created") Long created,
 		@JsonProperty("model") String model,
-		@JsonProperty("choices") List<Choice> choices,
+		@JsonProperty("object") String object,
 		@JsonProperty("usage") Usage usage) {
 		 // @formatter:on
 
@@ -530,9 +529,9 @@ public class MoonshotApi {
 		@JsonInclude(Include.NON_NULL)
 		public record Choice(
 		// @formatter:off
+			@JsonProperty("finish_reason") ChatCompletionFinishReason finishReason,
 			@JsonProperty("index") Integer index,
 			@JsonProperty("message") ChatCompletionMessage message,
-			@JsonProperty("finish_reason") ChatCompletionFinishReason finishReason,
 			@JsonProperty("usage") Usage usage) {
 			 // @formatter:on
 		}
@@ -638,6 +637,82 @@ public class MoonshotApi {
 				this(description, name, ModelOptionsUtils.jsonToMap(jsonSchema));
 			}
 
+		}
+
+	}
+
+	public static Builder builder() {
+		return new Builder();
+	}
+
+	public static class Builder {
+
+		private String baseUrl = DEFAULT_BASE_URL;
+
+		private ApiKey apiKey;
+
+		private MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+
+		private String completionsPath = DEFAULT_COMPLETIONS_PATH;
+
+		private RestClient.Builder restClientBuilder = RestClient.builder();
+
+		private WebClient.Builder webClientBuilder = WebClient.builder();
+
+		private ResponseErrorHandler responseErrorHandler = RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER;
+
+		public Builder baseUrl(String baseUrl) {
+			Assert.hasText(baseUrl, "baseUrl cannot be null or empty");
+			this.baseUrl = baseUrl;
+			return this;
+		}
+
+		public Builder apiKey(ApiKey apiKey) {
+			Assert.notNull(apiKey, "apiKey cannot be null");
+			this.apiKey = apiKey;
+			return this;
+		}
+
+		public Builder apiKey(String simpleApiKey) {
+			Assert.notNull(simpleApiKey, "simpleApiKey cannot be null");
+			this.apiKey = new SimpleApiKey(simpleApiKey);
+			return this;
+		}
+
+		public Builder headers(MultiValueMap<String, String> headers) {
+			Assert.notNull(headers, "headers cannot be null");
+			this.headers = headers;
+			return this;
+		}
+
+		public Builder completionsPath(String completionsPath) {
+			Assert.hasText(completionsPath, "completionsPath cannot be null or empty");
+			this.completionsPath = completionsPath;
+			return this;
+		}
+
+		public Builder restClientBuilder(RestClient.Builder restClientBuilder) {
+			Assert.notNull(restClientBuilder, "restClientBuilder cannot be null");
+			this.restClientBuilder = restClientBuilder;
+			return this;
+		}
+
+		public Builder webClientBuilder(WebClient.Builder webClientBuilder) {
+			Assert.notNull(webClientBuilder, "webClientBuilder cannot be null");
+			this.webClientBuilder = webClientBuilder;
+			return this;
+		}
+
+		public Builder responseErrorHandler(ResponseErrorHandler responseErrorHandler) {
+			Assert.notNull(responseErrorHandler, "responseErrorHandler cannot be null");
+			this.responseErrorHandler = responseErrorHandler;
+			return this;
+		}
+
+		public MoonshotApi build() {
+			Assert.notNull(this.apiKey, "apiKey must be set");
+			return new MoonshotApi(this.baseUrl, this.apiKey, this.headers, this.completionsPath,
+					this.restClientBuilder, this.webClientBuilder, this.responseErrorHandler);
 		}
 
 	}

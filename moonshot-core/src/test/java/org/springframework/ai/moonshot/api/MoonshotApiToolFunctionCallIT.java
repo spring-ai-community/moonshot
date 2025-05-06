@@ -16,17 +16,12 @@
 
 package org.springframework.ai.moonshot.api;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletion;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.Role;
@@ -36,6 +31,10 @@ import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionRequest.Too
 import org.springframework.ai.moonshot.api.MoonshotApi.FunctionTool;
 import org.springframework.ai.moonshot.api.MoonshotApi.FunctionTool.Type;
 import org.springframework.http.ResponseEntity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -75,7 +74,7 @@ public class MoonshotApiToolFunctionCallIT {
 
 	private final MockWeatherService weatherService = new MockWeatherService();
 
-	private final MoonshotApi moonshotApi = new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+	MoonshotApi moonshotApi = MoonshotApi.builder().apiKey(System.getenv("MOONSHOT_API_KEY")).build();
 
 	private static <T> T fromJson(String json, Class<T> targetClass) {
 		try {

@@ -16,35 +16,34 @@
 
 package org.springframework.ai.moonshot.chat;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 import io.micrometer.observation.tck.TestObservationRegistry;
 import io.micrometer.observation.tck.TestObservationRegistryAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import reactor.core.publisher.Flux;
-
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.observation.DefaultChatModelObservationConvention;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.function.DefaultFunctionCallbackResolver;
+import org.springframework.ai.model.tool.ToolCallingManager;
 import org.springframework.ai.moonshot.MoonshotChatModel;
 import org.springframework.ai.moonshot.MoonshotChatOptions;
 import org.springframework.ai.moonshot.api.MoonshotApi;
 import org.springframework.ai.observation.conventions.AiOperationType;
-import org.springframework.ai.observation.conventions.AiProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.retry.support.RetryTemplate;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.ai.chat.observation.ChatModelObservationDocumentation.HighCardinalityKeyNames;
 import static org.springframework.ai.chat.observation.ChatModelObservationDocumentation.LowCardinalityKeyNames;
+import static org.springframework.ai.moonshot.api.MoonshotConstants.MOONSHOT_PROVIDER_NAME;
 
 /**
  * Integration tests for observation instrumentation in {@link MoonshotChatModel}.
@@ -133,7 +132,7 @@ public class MoonshotChatModelObservationIT {
 			.hasContextualNameEqualTo("chat " + MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue())
 			.hasLowCardinalityKeyValue(LowCardinalityKeyNames.AI_OPERATION_TYPE.asString(),
 					AiOperationType.CHAT.value())
-			.hasLowCardinalityKeyValue(LowCardinalityKeyNames.AI_PROVIDER.asString(), AiProvider.MOONSHOT.value())
+			.hasLowCardinalityKeyValue(LowCardinalityKeyNames.AI_PROVIDER.asString(), MOONSHOT_PROVIDER_NAME)
 			.hasLowCardinalityKeyValue(LowCardinalityKeyNames.REQUEST_MODEL.asString(),
 					MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue())
 			.hasLowCardinalityKeyValue(LowCardinalityKeyNames.RESPONSE_MODEL.asString(), responseMetadata.getModel())
@@ -167,15 +166,14 @@ public class MoonshotChatModelObservationIT {
 
 		@Bean
 		public MoonshotApi moonshotApi() {
-			return new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+			return MoonshotApi.builder().apiKey(System.getenv("MOONSHOT_API_KEY")).build();
 		}
 
 		@Bean
 		public MoonshotChatModel moonshotChatModel(MoonshotApi moonshotApi,
 				TestObservationRegistry observationRegistry) {
 			return new MoonshotChatModel(moonshotApi, MoonshotChatOptions.builder().build(),
-					new DefaultFunctionCallbackResolver(), List.of(), RetryTemplate.defaultInstance(),
-					observationRegistry);
+					ToolCallingManager.builder().build(), RetryTemplate.defaultInstance(), observationRegistry);
 		}
 
 	}

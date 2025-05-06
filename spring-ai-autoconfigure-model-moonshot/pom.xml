@@ -30,6 +30,11 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-autoconfigure-model-tool</artifactId>
+        </dependency>
+
         <!-- Spring AI dependencies -->
         <dependency>
             <groupId>org.springframework.ai</groupId>

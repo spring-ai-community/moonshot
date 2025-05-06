@@ -16,23 +16,17 @@
 
 package org.springframework.ai.model.moonshot.autoconfigure.tool;
 
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
-
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.function.FunctionCallingOptions;
 import org.springframework.ai.model.moonshot.autoconfigure.MoonshotChatAutoConfiguration;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.moonshot.MoonshotChatModel;
 import org.springframework.ai.moonshot.MoonshotChatOptions;
 import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
@@ -42,6 +36,11 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Description;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -71,7 +70,7 @@ class FunctionCallbackWithPlainFunctionBeanIT {
 					"What's the weather like in San Francisco, Tokyo, and Paris? Return the temperature in Celsius");
 
 			ChatResponse response = chatModel.call(new Prompt(List.of(userMessage),
-					MoonshotChatOptions.builder().function("weatherFunction").build()));
+					MoonshotChatOptions.builder().toolNames("weatherFunction").build()));
 
 			logger.info("Response: {}", response);
 
@@ -79,7 +78,7 @@ class FunctionCallbackWithPlainFunctionBeanIT {
 
 			// Test weatherFunctionTwo
 			response = chatModel.call(new Prompt(List.of(userMessage),
-					MoonshotChatOptions.builder().function("weatherFunctionTwo").build()));
+					MoonshotChatOptions.builder().toolNames("weatherFunctionTwo").build()));
 
 			logger.info("Response: {}", response);
 
@@ -98,8 +97,8 @@ class FunctionCallbackWithPlainFunctionBeanIT {
 			UserMessage userMessage = new UserMessage(
 					"What's the weather like in San Francisco, Tokyo, and Paris? Return the temperature in Celsius");
 
-			FunctionCallingOptions functionOptions = FunctionCallingOptions.builder()
-				.function("weatherFunction")
+			ToolCallingChatOptions functionOptions = ToolCallingChatOptions.builder()
+				.toolNames("weatherFunction")
 				.build();
 
 			ChatResponse response = chatModel.call(new Prompt(List.of(userMessage), functionOptions));
@@ -119,7 +118,7 @@ class FunctionCallbackWithPlainFunctionBeanIT {
 					"What's the weather like in San Francisco, Tokyo, and Paris? Return the temperature in Celsius");
 
 			Flux<ChatResponse> response = chatModel.stream(new Prompt(List.of(userMessage),
-					MoonshotChatOptions.builder().function("weatherFunction").build()));
+					MoonshotChatOptions.builder().toolNames("weatherFunction").build()));
 
 			String content = response.collectList()
 				.block()
@@ -137,7 +136,7 @@ class FunctionCallbackWithPlainFunctionBeanIT {
 
 			// Test weatherFunctionTwo
 			response = chatModel.stream(new Prompt(List.of(userMessage),
-					MoonshotChatOptions.builder().function("weatherFunctionTwo").build()));
+					MoonshotChatOptions.builder().toolNames("weatherFunctionTwo").build()));
 
 			content = response.collectList()
 				.block()

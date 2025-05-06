@@ -16,8 +16,6 @@
 
 package org.springframework.ai.moonshot.api;
 
-import org.springframework.ai.observation.conventions.AiProvider;
-
 /**
  * Constants for Moonshot API.
  *
@@ -27,7 +25,9 @@ public final class MoonshotConstants {
 
 	public static final String DEFAULT_BASE_URL = "https://api.moonshot.cn";
 
-	public static final String PROVIDER_NAME = AiProvider.MOONSHOT.value();
+	public static final String MOONSHOT_PROVIDER_NAME = "Moonshot";
+
+	public static final String DEFAULT_COMPLETIONS_PATH = "/v1/chat/completions";
 
 	private MoonshotConstants() {
 

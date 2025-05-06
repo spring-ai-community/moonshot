@@ -29,20 +29,21 @@ public class MoonshotTestConfiguration {
 
 	@Bean
 	public MoonshotApi moonshotApi() {
-		var apiKey = System.getenv("MOONSHOT_API_KEY");
-		if (!StringUtils.hasText(apiKey)) {
-			throw new IllegalArgumentException(
-					"Missing MOONSHOT_API_KEY environment variable. Please set it to your Moonshot API key.");
-		}
-		return new MoonshotApi(apiKey);
+		return MoonshotApi.builder().apiKey(getApiKey()).build();
 	}
 
 	@Bean
-	public MoonshotChatModel moonshotChatModel(MoonshotApi moonshotApi) {
-		return new MoonshotChatModel(moonshotApi);
+	public MoonshotChatModel moonshotChatModel(MoonshotApi api) {
+		return MoonshotChatModel.builder().moonshotApi(api).build();
 	}
 
-	public void tst() {
+	private String getApiKey() {
+		String apiKey = System.getenv("MOONSHOT_API_KEY");
+		if (!StringUtils.hasText(apiKey)) {
+			throw new IllegalArgumentException(
+					"You must provide an API key.  Put it in an environment variable under the name MOONSHOT_API_KEY");
+		}
+		return apiKey;
 	}
 
 }

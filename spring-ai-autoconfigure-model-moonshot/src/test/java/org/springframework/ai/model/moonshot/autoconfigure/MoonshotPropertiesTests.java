@@ -17,7 +17,6 @@
 package org.springframework.ai.model.moonshot.autoconfigure;
 
 import org.junit.jupiter.api.Test;
-
 import org.springframework.ai.moonshot.MoonshotChatModel;
 import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;

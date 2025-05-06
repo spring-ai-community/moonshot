@@ -17,11 +17,8 @@
 package org.springframework.ai.moonshot;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.moonshot.api.MoonshotApi;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,32 +26,34 @@ import static org.assertj.core.api.Assertions.assertThat;
  * @author Geng Rong
  * @author Alexandros Pappas
  */
-@SpringBootTest
-@EnabledIfEnvironmentVariable(named = "MOONSHOT_API_KEY", matches = ".+")
 public class MoonshotChatCompletionRequestTest {
 
-	MoonshotChatModel chatModel = new MoonshotChatModel(new MoonshotApi("test"));
-
 	@Test
-	void chatCompletionDefaultRequestTest() {
-		var request = this.chatModel.createRequest(new Prompt("test content"), false);
+	public void createRequestWithChatOptions() {
+
+		var client = MoonshotChatModel.builder()
+			.moonshotApi(MoonshotApi.builder().apiKey("TEST").build())
+			.defaultOptions(MoonshotChatOptions.builder().model("DEFAULT_MODEL").temperature(66.6).build())
+			.build();
+
+		var prompt = client.buildRequestPrompt(new Prompt("Test message content"));
+
+		var request = client.createRequest(prompt, false);
 
 		assertThat(request.messages()).hasSize(1);
-		assertThat(request.topP()).isEqualTo(1);
-		assertThat(request.temperature()).isEqualTo(0.7);
-		assertThat(request.maxTokens()).isNull();
 		assertThat(request.stream()).isFalse();
-	}
 
-	@Test
-	void chatCompletionRequestWithOptionsTest() {
-		var options = MoonshotChatOptions.builder().temperature(0.5).topP(0.8).build();
-		var request = this.chatModel.createRequest(new Prompt("test content", options), true);
+		assertThat(request.model()).isEqualTo("DEFAULT_MODEL");
+		assertThat(request.temperature()).isEqualTo(66.6D);
 
-		assertThat(request.messages().size()).isEqualTo(1);
-		assertThat(request.topP()).isEqualTo(0.8);
-		assertThat(request.temperature()).isEqualTo(0.5);
+		request = client.createRequest(new Prompt("Test message content",
+				MoonshotChatOptions.builder().model("PROMPT_MODEL").temperature(99.9D).build()), true);
+
+		assertThat(request.messages()).hasSize(1);
 		assertThat(request.stream()).isTrue();
+
+		assertThat(request.model()).isEqualTo("PROMPT_MODEL");
+		assertThat(request.temperature()).isEqualTo(99.9D);
 	}
 
 }

@@ -40,8 +40,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Dependency versions -->
-        <spring-framework.version>6.1.4</spring-framework.version>
-        <spring-ai.version>1.0.0-M7</spring-ai.version>
+        <spring-framework.version>6.2.6</spring-framework.version>
+        <spring-ai.version>1.0.0-M8</spring-ai.version>
         <micrometer.version>1.12.2</micrometer.version>
         <reactor.version>2023.0.2</reactor.version>
         <slf4j.version>2.0.9</slf4j.version>
@@ -57,6 +57,8 @@
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.6.0</maven-javadoc-plugin.version>
         <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
+
+        <spring-javaformat-maven-plugin.version>0.0.43</spring-javaformat-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -102,6 +104,11 @@
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-autoconfigure-retry</artifactId>
+                <version>${spring-ai.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.ai</groupId>
+                <artifactId>spring-ai-autoconfigure-model-tool</artifactId>
                 <version>${spring-ai.version}</version>
             </dependency>
             <dependency>
@@ -218,6 +225,20 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>${spring-javaformat-maven-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <inherited>true</inherited>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
