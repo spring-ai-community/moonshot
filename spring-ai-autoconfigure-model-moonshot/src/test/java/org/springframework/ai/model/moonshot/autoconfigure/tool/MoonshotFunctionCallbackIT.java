@@ -16,31 +16,29 @@
 
 package org.springframework.ai.model.moonshot.autoconfigure.tool;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
-
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.model.function.FunctionCallback;
 import org.springframework.ai.model.moonshot.autoconfigure.MoonshotChatAutoConfiguration;
 import org.springframework.ai.moonshot.MoonshotChatModel;
 import org.springframework.ai.moonshot.MoonshotChatOptions;
-import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
-import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -55,8 +53,7 @@ public class MoonshotFunctionCallbackIT {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 		.withPropertyValues("spring.ai.moonshot.apiKey=" + System.getenv("MOONSHOT_API_KEY"))
-		.withConfiguration(AutoConfigurations.of(SpringAiRetryAutoConfiguration.class,
-				RestClientAutoConfiguration.class, MoonshotChatAutoConfiguration.class))
+		.withConfiguration(AutoConfigurations.of(MoonshotChatAutoConfiguration.class))
 		.withUserConfiguration(Config.class);
 
 	@Test
@@ -69,7 +66,7 @@ public class MoonshotFunctionCallbackIT {
 					"What's the weather like in San Francisco, Tokyo, and Paris? Return the temperature in Celsius");
 
 			ChatResponse response = chatModel
-				.call(new Prompt(List.of(userMessage), MoonshotChatOptions.builder().function("WeatherInfo").build()));
+				.call(new Prompt(List.of(userMessage), MoonshotChatOptions.builder().toolNames("WeatherInfo").build()));
 
 			logger.info("Response: {}", response);
 
@@ -88,7 +85,7 @@ public class MoonshotFunctionCallbackIT {
 					"What's the weather like in San Francisco, Tokyo, and Paris? Return the temperature in Celsius");
 
 			Flux<ChatResponse> response = chatModel.stream(
-					new Prompt(List.of(userMessage), MoonshotChatOptions.builder().function("WeatherInfo").build()));
+					new Prompt(List.of(userMessage), MoonshotChatOptions.builder().toolNames("WeatherInfo").build()));
 
 			String content = response.collectList()
 				.block()
@@ -112,10 +109,9 @@ public class MoonshotFunctionCallbackIT {
 	static class Config {
 
 		@Bean
-		public FunctionCallback weatherFunctionInfo() {
+		public ToolCallback weatherFunctionInfo() {
 
-			return FunctionCallback.builder()
-				.function("WeatherInfo", new MockWeatherService())
+			return FunctionToolCallback.builder("WeatherInfo", new MockWeatherService())
 				.description("Get the weather in location")
 				.inputType(MockWeatherService.Request.class)
 				.build();

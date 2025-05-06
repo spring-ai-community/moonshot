@@ -21,6 +21,8 @@ import org.springframework.ai.moonshot.api.MoonshotApi;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+import static org.springframework.ai.moonshot.api.MoonshotConstants.DEFAULT_COMPLETIONS_PATH;
+
 /**
  * Configuration properties for Moonshot chat client.
  *
@@ -36,6 +38,8 @@ public class MoonshotChatProperties extends MoonshotParentProperties {
 
 	private static final Double DEFAULT_TEMPERATURE = 0.7;
 
+	private String completionsPath = DEFAULT_COMPLETIONS_PATH;
+
 	@NestedConfigurationProperty
 	private MoonshotChatOptions options = MoonshotChatOptions.builder()
 		.model(DEFAULT_CHAT_MODEL)
@@ -48,6 +52,14 @@ public class MoonshotChatProperties extends MoonshotParentProperties {
 
 	public void setOptions(MoonshotChatOptions options) {
 		this.options = options;
+	}
+
+	public String getCompletionsPath() {
+		return completionsPath;
+	}
+
+	public void setCompletionsPath(String completionsPath) {
+		this.completionsPath = completionsPath;
 	}
 
 }

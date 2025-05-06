@@ -16,18 +16,17 @@
 
 package org.springframework.ai.moonshot.api;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import reactor.core.publisher.Flux;
-
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletion;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionChunk;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.Role;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionRequest;
 import org.springframework.http.ResponseEntity;
+import reactor.core.publisher.Flux;
+
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @EnabledIfEnvironmentVariable(named = "MOONSHOT_API_KEY", matches = ".+")
 public class MoonshotApiIT {
 
-	MoonshotApi moonshotApi = new MoonshotApi(System.getenv("MOONSHOT_API_KEY"));
+	MoonshotApi moonshotApi = MoonshotApi.builder().apiKey(System.getenv("MOONSHOT_API_KEY")).build();
 
 	@Test
 	void chatCompletionEntity() {
@@ -57,7 +56,7 @@ public class MoonshotApiIT {
 				You are an AI assistant that helps people find information.
 				Your name is Bob.
 				You should reply to the user's request with your name and also in the style of a pirate.
-					""", Role.SYSTEM);
+				""", Role.SYSTEM);
 
 		ResponseEntity<ChatCompletion> response = this.moonshotApi.chatCompletionEntity(new ChatCompletionRequest(
 				List.of(systemMessage, userMessage), MoonshotApi.ChatModel.MOONSHOT_V1_8K.getValue(), 0.8, false));

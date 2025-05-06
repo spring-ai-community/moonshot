@@ -16,16 +16,10 @@
 
 package org.springframework.ai.moonshot.chat;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
@@ -45,6 +39,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.convert.support.DefaultConversionService;
 import org.springframework.core.io.Resource;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -88,8 +87,10 @@ public class MoonshotChatModelIT {
 				List five {subject}
 				{format}
 				""";
-		PromptTemplate promptTemplate = new PromptTemplate(template,
-				Map.of("subject", "ice cream flavors", "format", format));
+		PromptTemplate promptTemplate = PromptTemplate.builder()
+			.template(template)
+			.variables(Map.of("subject", "ice cream flavors", "format", format))
+			.build();
 		Prompt prompt = new Prompt(promptTemplate.createMessage());
 		Generation generation = this.chatModel.call(prompt).getResult();
 
@@ -109,12 +110,12 @@ public class MoonshotChatModelIT {
 				Provide me a List of {subject}
 				{format}
 				""";
-		PromptTemplate promptTemplate = new PromptTemplate(template, Map.of("subject", """
+		PromptTemplate promptTemplate = PromptTemplate.builder().template(template).variables(Map.of("subject", """
 				numbers from 1 to 9 under they key name 'numbers'.
 				For example here is a list of numbers from 1 to 3 the required format
 					{
 					"numbers": [1, 2, 3]
-					}""", "format", format));
+					}""", "format", format)).build();
 		Prompt prompt = new Prompt(promptTemplate.createMessage());
 		Generation generation = this.chatModel.call(prompt).getResult();
 
@@ -133,7 +134,10 @@ public class MoonshotChatModelIT {
 				Generate the filmography for a random actor.
 				{format}
 				""";
-		PromptTemplate promptTemplate = new PromptTemplate(template, Map.of("format", format));
+		PromptTemplate promptTemplate = PromptTemplate.builder()
+			.template(template)
+			.variables(Map.of("format", format))
+			.build();
 		Prompt prompt = new Prompt(promptTemplate.createMessage());
 		Generation generation = this.chatModel.call(prompt).getResult();
 
@@ -158,7 +162,10 @@ public class MoonshotChatModelIT {
 
 				Your response should be without ```json``` and $schema
 				""";
-		PromptTemplate promptTemplate = new PromptTemplate(template, Map.of("format", format));
+		PromptTemplate promptTemplate = PromptTemplate.builder()
+			.template(template)
+			.variables(Map.of("format", format))
+			.build();
 		Prompt prompt = new Prompt(promptTemplate.createMessage());
 		Generation generation = this.chatModel.call(prompt).getResult();
 
@@ -180,7 +187,10 @@ public class MoonshotChatModelIT {
 
 				your response should be without ```json``` and $shcema.
 				""";
-		PromptTemplate promptTemplate = new PromptTemplate(template, Map.of("format", format));
+		PromptTemplate promptTemplate = PromptTemplate.builder()
+			.template(template)
+			.variables(Map.of("format", format))
+			.build();
 		Prompt prompt = new Prompt(promptTemplate.createMessage());
 
 		String generationTextFromStream = this.streamingChatModel.stream(prompt)

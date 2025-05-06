@@ -16,32 +16,35 @@
 
 package org.springframework.ai.model.moonshot.autoconfigure;
 
-import java.util.List;
-
 import io.micrometer.observation.ObservationRegistry;
-
 import org.springframework.ai.chat.observation.ChatModelObservationConvention;
+import org.springframework.ai.model.SimpleApiKey;
 import org.springframework.ai.model.SpringAIModelProperties;
-import org.springframework.ai.model.SpringAIModels;
-import org.springframework.ai.model.function.DefaultFunctionCallbackResolver;
-import org.springframework.ai.model.function.FunctionCallback;
-import org.springframework.ai.model.function.FunctionCallbackResolver;
+import org.springframework.ai.model.tool.DefaultToolExecutionEligibilityPredicate;
+import org.springframework.ai.model.tool.ToolCallingManager;
+import org.springframework.ai.model.tool.ToolExecutionEligibilityPredicate;
+import org.springframework.ai.model.tool.autoconfigure.ToolCallingAutoConfiguration;
 import org.springframework.ai.moonshot.MoonshotChatModel;
 import org.springframework.ai.moonshot.api.MoonshotApi;
+import org.springframework.ai.retry.autoconfigure.SpringAiRetryAutoConfiguration;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.web.client.RestClientAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.reactive.function.client.WebClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import static org.springframework.ai.moonshot.api.MoonshotConstants.MOONSHOT_PROVIDER_NAME;
 
 /**
  * {@link AutoConfiguration Auto-configuration} for Moonshot Chat Model.
@@ -49,10 +52,13 @@ import org.springframework.web.client.RestClient;
  * @author Geng Rong
  * @author Ilayaperumal Gopinathan
  */
-@AutoConfiguration(after = RestClientAutoConfiguration.class)
-@EnableConfigurationProperties({ MoonshotCommonProperties.class, MoonshotChatProperties.class })
+@AutoConfiguration(after = { RestClientAutoConfiguration.class, WebClientAutoConfiguration.class,
+		SpringAiRetryAutoConfiguration.class, ToolCallingAutoConfiguration.class })
 @ConditionalOnClass(MoonshotApi.class)
-@ConditionalOnProperty(name = SpringAIModelProperties.CHAT_MODEL, havingValue = SpringAIModels.MOONSHOT,
+@EnableConfigurationProperties({ MoonshotCommonProperties.class, MoonshotChatProperties.class })
+@ImportAutoConfiguration(classes = { SpringAiRetryAutoConfiguration.class, RestClientAutoConfiguration.class,
+		WebClientAutoConfiguration.class, ToolCallingAutoConfiguration.class })
+@ConditionalOnProperty(name = SpringAIModelProperties.CHAT_MODEL, havingValue = MOONSHOT_PROVIDER_NAME,
 		matchIfMissing = true)
 public class MoonshotChatAutoConfiguration {
 
@@ -60,46 +66,57 @@ public class MoonshotChatAutoConfiguration {
 	@ConditionalOnMissingBean
 	public MoonshotChatModel moonshotChatModel(MoonshotCommonProperties commonProperties,
 			MoonshotChatProperties chatProperties, ObjectProvider<RestClient.Builder> restClientBuilderProvider,
-			List<FunctionCallback> toolFunctionCallbacks, FunctionCallbackResolver functionCallbackResolver,
+			ObjectProvider<WebClient.Builder> webClientBuilderProvider, ToolCallingManager toolCallingManager,
 			RetryTemplate retryTemplate, ResponseErrorHandler responseErrorHandler,
 			ObjectProvider<ObservationRegistry> observationRegistry,
-			ObjectProvider<ChatModelObservationConvention> observationConvention) {
+			ObjectProvider<ChatModelObservationConvention> observationConvention,
+			ObjectProvider<ToolExecutionEligibilityPredicate> toolExecutionEligibilityPredicate) {
 
-		var moonshotApi = moonshotApi(chatProperties.getApiKey(), commonProperties.getApiKey(),
-				chatProperties.getBaseUrl(), commonProperties.getBaseUrl(),
-				restClientBuilderProvider.getIfAvailable(RestClient::builder), responseErrorHandler);
+		var moonshotApi = moonshotApi(chatProperties, commonProperties,
+				restClientBuilderProvider.getIfAvailable(RestClient::builder),
+				webClientBuilderProvider.getIfAvailable(WebClient::builder), responseErrorHandler);
 
-		var chatModel = new MoonshotChatModel(moonshotApi, chatProperties.getOptions(), functionCallbackResolver,
-				toolFunctionCallbacks, retryTemplate, observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP));
+		var chatModel = MoonshotChatModel.builder()
+			.moonshotApi(moonshotApi)
+			.defaultOptions(chatProperties.getOptions())
+			.toolCallingManager(toolCallingManager)
+			.toolExecutionEligibilityPredicate(
+					toolExecutionEligibilityPredicate.getIfUnique(DefaultToolExecutionEligibilityPredicate::new))
+			.retryTemplate(retryTemplate)
+			.observationRegistry(observationRegistry.getIfUnique(() -> ObservationRegistry.NOOP))
+			.build();
 
 		observationConvention.ifAvailable(chatModel::setObservationConvention);
+
 		return chatModel;
 	}
 
-	@Bean
-	@ConditionalOnMissingBean
-	public FunctionCallbackResolver springAiFunctionManager(ApplicationContext context) {
-		DefaultFunctionCallbackResolver manager = new DefaultFunctionCallbackResolver();
-		manager.setApplicationContext(context);
-		return manager;
-	}
-	
 	@Bean
 	@ConditionalOnMissingBean
 	public RetryTemplate retryTemplate() {
 		return new RetryTemplate();
 	}
 
-	private MoonshotApi moonshotApi(String apiKey, String commonApiKey, String baseUrl, String commonBaseUrl,
-			RestClient.Builder restClientBuilder, ResponseErrorHandler responseErrorHandler) {
+	private MoonshotApi moonshotApi(MoonshotChatProperties chatProperties, MoonshotCommonProperties commonProperties,
+			RestClient.Builder restClientBuilder, WebClient.Builder webClientBuilder,
+			ResponseErrorHandler responseErrorHandler) {
 
-		var resolvedApiKey = StringUtils.hasText(apiKey) ? apiKey : commonApiKey;
-		var resoledBaseUrl = StringUtils.hasText(baseUrl) ? baseUrl : commonBaseUrl;
+		String resolvedBaseUrl = StringUtils.hasText(chatProperties.getBaseUrl()) ? chatProperties.getBaseUrl()
+				: commonProperties.getBaseUrl();
+		Assert.hasText(resolvedBaseUrl, "Moonshot base URL must be set");
 
+		String resolvedApiKey = StringUtils.hasText(chatProperties.getApiKey()) ? chatProperties.getApiKey()
+				: commonProperties.getApiKey();
 		Assert.hasText(resolvedApiKey, "Moonshot API key must be set");
-		Assert.hasText(resoledBaseUrl, "Moonshot base URL must be set");
 
-		return new MoonshotApi(resoledBaseUrl, resolvedApiKey, restClientBuilder, responseErrorHandler);
+		return MoonshotApi.builder()
+			.baseUrl(resolvedBaseUrl)
+			.apiKey(new SimpleApiKey(resolvedApiKey))
+			.completionsPath(chatProperties.getCompletionsPath())
+			.restClientBuilder(restClientBuilder)
+			.webClientBuilder(webClientBuilder)
+			.responseErrorHandler(responseErrorHandler)
+			.build();
 	}
 
 }

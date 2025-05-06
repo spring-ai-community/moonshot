@@ -16,20 +16,17 @@
 
 package org.springframework.ai.moonshot;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import org.springframework.ai.model.function.FunctionCallback;
-import org.springframework.ai.model.function.FunctionCallingOptions;
+import org.springframework.ai.model.ModelOptionsUtils;
+import org.springframework.ai.model.tool.ToolCallingChatOptions;
 import org.springframework.ai.moonshot.api.MoonshotApi;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.util.*;
 
 /**
  * Options for Moonshot chat completions.
@@ -39,7 +36,7 @@ import org.springframework.util.Assert;
  * @author Alexandros Pappas
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class MoonshotChatOptions implements FunctionCallingOptions {
+public class MoonshotChatOptions implements ToolCallingChatOptions {
 
 	/**
 	 * ID of the model to use
@@ -108,62 +105,117 @@ public class MoonshotChatOptions implements FunctionCallingOptions {
 	private @JsonProperty("tool_choice") String toolChoice;
 
 	/**
-	 * Moonshot Tool Function Callbacks to register with the ChatModel. For Prompt Options
-	 * the functionCallbacks are automatically enabled for the duration of the prompt
-	 * execution. For Default Options the functionCallbacks are registered but disabled by
-	 * default. Use the enableFunctions to set the functions from the registry to be used
-	 * by the ChatModel chat completion requests.
-	 */
-	@JsonIgnore
-	private List<FunctionCallback> functionCallbacks = new ArrayList<>();
-
-	/**
-	 * List of functions, identified by their names, to configure for function calling in
-	 * the chat completion requests. Functions with those names must exist in the
-	 * functionCallbacks registry. The {@link #functionCallbacks} from the PromptOptions
-	 * are automatically enabled for the duration of the prompt execution.
-	 *
-	 * Note that function enabled with the default options are enabled for all chat
-	 * completion requests. This could impact the token count and the billing. If the
-	 * functions is set in a prompt options, then the enabled functions are only active
-	 * for the duration of this prompt execution.
-	 */
-	@JsonIgnore
-	private Set<String> functions = new HashSet<>();
-
-	/**
 	 * A unique identifier representing your end-user, which can help Moonshot to monitor
 	 * and detect abuse.
 	 */
 	private @JsonProperty("user") String user;
 
+	/**
+	 * Collection of {@link ToolCallback}s to be used for tool calling in the chat
+	 * completion requests.
+	 */
 	@JsonIgnore
-	private Boolean proxyToolCalls;
+	private List<ToolCallback> toolCallbacks = new ArrayList<>();
+
+	/**
+	 * Collection of tool names to be resolved at runtime and used for tool calling in the
+	 * chat completion requests.
+	 */
+	@JsonIgnore
+	private Set<String> toolNames = new HashSet<>();
+
+	/**
+	 * Whether to enable the tool execution lifecycle internally in ChatModel.
+	 */
+	@JsonIgnore
+	private Boolean internalToolExecutionEnabled;
 
 	@JsonIgnore
-	private Map<String, Object> toolContext;
+	private Map<String, Object> toolContext = new HashMap<>();
+
+	// @formatter:on
 
 	public static Builder builder() {
 		return new Builder();
 	}
 
-	@Override
-	public List<FunctionCallback> getFunctionCallbacks() {
-		return this.functionCallbacks;
+	public static MoonshotChatOptions fromOptions(MoonshotChatOptions fromOptions) {
+		return MoonshotChatOptions.builder()
+			.model(fromOptions.getModel())
+			.frequencyPenalty(fromOptions.getFrequencyPenalty())
+			.maxTokens(fromOptions.getMaxTokens())
+			.N(fromOptions.getN())
+			.presencePenalty(fromOptions.getPresencePenalty())
+			.stop(fromOptions.getStop() != null ? new ArrayList<>(fromOptions.getStop()) : null)
+			.temperature(fromOptions.getTemperature())
+			.topP(fromOptions.getTopP())
+			.tools(fromOptions.getTools())
+			.toolChoice(fromOptions.getToolChoice())
+			.user(fromOptions.getUser())
+			.toolCallbacks(
+					fromOptions.getToolCallbacks() != null ? new ArrayList<>(fromOptions.getToolCallbacks()) : null)
+			.toolNames(fromOptions.getToolNames() != null ? new HashSet<>(fromOptions.getToolNames()) : null)
+			.internalToolExecutionEnabled(fromOptions.getInternalToolExecutionEnabled())
+			.toolContext(fromOptions.getToolContext() != null ? new HashMap<>(fromOptions.getToolContext()) : null)
+			.build();
+	}
+
+	public List<MoonshotApi.FunctionTool> getTools() {
+		return tools;
+	}
+
+	public void setTools(List<MoonshotApi.FunctionTool> tools) {
+		this.tools = tools;
+	}
+
+	public String getToolChoice() {
+		return toolChoice;
+	}
+
+	public void setToolChoice(String toolChoice) {
+		this.toolChoice = toolChoice;
 	}
 
 	@Override
-	public void setFunctionCallbacks(List<FunctionCallback> functionCallbacks) {
-		this.functionCallbacks = functionCallbacks;
+	@JsonIgnore
+	public List<ToolCallback> getToolCallbacks() {
+		return this.toolCallbacks;
 	}
 
 	@Override
-	public Set<String> getFunctions() {
-		return this.functions;
+	@JsonIgnore
+	public void setToolCallbacks(List<ToolCallback> toolCallbacks) {
+		Assert.notNull(toolCallbacks, "toolCallbacks cannot be null");
+		Assert.noNullElements(toolCallbacks, "toolCallbacks cannot contain null elements");
+		this.toolCallbacks = toolCallbacks;
 	}
 
-	public void setFunctions(Set<String> functionNames) {
-		this.functions = functionNames;
+	@Override
+	@JsonIgnore
+	public Set<String> getToolNames() {
+		return this.toolNames;
+	}
+
+	@Override
+	@JsonIgnore
+	public void setToolNames(Set<String> toolNames) {
+		Assert.notNull(toolNames, "toolNames cannot be null");
+		Assert.noNullElements(toolNames, "toolNames cannot contain null elements");
+		toolNames.forEach(tool -> Assert.hasText(tool, "toolNames cannot contain empty elements"));
+		this.toolNames = toolNames;
+	}
+
+	@Override
+	@Nullable
+	@JsonIgnore
+	public Boolean getInternalToolExecutionEnabled() {
+		return this.internalToolExecutionEnabled;
+	}
+
+	@Override
+	@JsonIgnore
+	public void setInternalToolExecutionEnabled(@Nullable Boolean internalToolExecutionEnabled) {
+		this.internalToolExecutionEnabled = internalToolExecutionEnabled;
 	}
 
 	@Override
@@ -262,15 +314,6 @@ public class MoonshotChatOptions implements FunctionCallingOptions {
 	}
 
 	@Override
-	public Boolean getProxyToolCalls() {
-		return this.proxyToolCalls;
-	}
-
-	public void setProxyToolCalls(Boolean proxyToolCalls) {
-		this.proxyToolCalls = proxyToolCalls;
-	}
-
-	@Override
 	public Map<String, Object> getToolContext() {
 		return this.toolContext;
 	}
@@ -282,160 +325,70 @@ public class MoonshotChatOptions implements FunctionCallingOptions {
 
 	@Override
 	public MoonshotChatOptions copy() {
-		return builder().model(this.model)
-			.maxTokens(this.maxTokens)
-			.temperature(this.temperature)
-			.topP(this.topP)
-			.N(this.n)
-			.presencePenalty(this.presencePenalty)
-			.frequencyPenalty(this.frequencyPenalty)
-			.stop(this.stop)
-			.user(this.user)
-			.tools(this.tools)
-			.toolChoice(this.toolChoice)
-			.functionCallbacks(this.functionCallbacks)
-			.functions(this.functions)
-			.proxyToolCalls(this.proxyToolCalls)
-			.toolContext(this.toolContext)
-			.build();
+		return MoonshotChatOptions.fromOptions(this);
 	}
 
 	@Override
 	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((this.model == null) ? 0 : this.model.hashCode());
-		result = prime * result + ((this.frequencyPenalty == null) ? 0 : this.frequencyPenalty.hashCode());
-		result = prime * result + ((this.maxTokens == null) ? 0 : this.maxTokens.hashCode());
-		result = prime * result + ((this.n == null) ? 0 : this.n.hashCode());
-		result = prime * result + ((this.presencePenalty == null) ? 0 : this.presencePenalty.hashCode());
-		result = prime * result + ((this.stop == null) ? 0 : this.stop.hashCode());
-		result = prime * result + ((this.temperature == null) ? 0 : this.temperature.hashCode());
-		result = prime * result + ((this.topP == null) ? 0 : this.topP.hashCode());
-		result = prime * result + ((this.user == null) ? 0 : this.user.hashCode());
-		result = prime * result + ((this.proxyToolCalls == null) ? 0 : this.proxyToolCalls.hashCode());
-		result = prime * result + ((this.toolContext == null) ? 0 : this.toolContext.hashCode());
-		return result;
+		return Objects.hash(this.model, this.frequencyPenalty, this.maxTokens, this.n, this.presencePenalty, this.stop,
+				this.temperature, this.topP, this.tools, this.toolChoice, this.user, this.toolCallbacks, this.toolNames,
+				this.internalToolExecutionEnabled, this.toolContext);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
+	public boolean equals(Object o) {
+		if (this == o) {
 			return true;
 		}
-		if (obj == null) {
+		if (o == null || getClass() != o.getClass()) {
 			return false;
 		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		MoonshotChatOptions other = (MoonshotChatOptions) obj;
-		if (this.model == null) {
-			if (other.model != null) {
-				return false;
-			}
-		}
-		else if (!this.model.equals(other.model)) {
-			return false;
-		}
-		if (this.frequencyPenalty == null) {
-			if (other.frequencyPenalty != null) {
-				return false;
-			}
-		}
-		else if (!this.frequencyPenalty.equals(other.frequencyPenalty)) {
-			return false;
-		}
-		if (this.maxTokens == null) {
-			if (other.maxTokens != null) {
-				return false;
-			}
-		}
-		else if (!this.maxTokens.equals(other.maxTokens)) {
-			return false;
-		}
-		if (this.n == null) {
-			if (other.n != null) {
-				return false;
-			}
-		}
-		else if (!this.n.equals(other.n)) {
-			return false;
-		}
-		if (this.presencePenalty == null) {
-			if (other.presencePenalty != null) {
-				return false;
-			}
-		}
-		else if (!this.presencePenalty.equals(other.presencePenalty)) {
-			return false;
-		}
-		if (this.stop == null) {
-			if (other.stop != null) {
-				return false;
-			}
-		}
-		else if (!this.stop.equals(other.stop)) {
-			return false;
-		}
-		if (this.temperature == null) {
-			if (other.temperature != null) {
-				return false;
-			}
-		}
-		else if (!this.temperature.equals(other.temperature)) {
-			return false;
-		}
-		if (this.topP == null) {
-			if (other.topP != null) {
-				return false;
-			}
-		}
-		else if (!this.topP.equals(other.topP)) {
-			return false;
-		}
-		if (this.user == null) {
-			return other.user == null;
-		}
-		else if (!this.user.equals(other.user)) {
-			return false;
-		}
-		if (this.proxyToolCalls == null) {
-			return other.proxyToolCalls == null;
-		}
-		else if (!this.proxyToolCalls.equals(other.proxyToolCalls)) {
-			return false;
-		}
-		if (this.toolContext == null) {
-			return other.toolContext == null;
-		}
-		else if (!this.toolContext.equals(other.toolContext)) {
-			return false;
-		}
-		return true;
+		MoonshotChatOptions other = (MoonshotChatOptions) o;
+		return Objects.equals(this.model, other.model) && Objects.equals(this.frequencyPenalty, other.frequencyPenalty)
+				&& Objects.equals(this.maxTokens, other.maxTokens) && Objects.equals(this.n, other.n)
+				&& Objects.equals(this.presencePenalty, other.presencePenalty) && Objects.equals(this.stop, other.stop)
+				&& Objects.equals(this.temperature, other.temperature) && Objects.equals(this.topP, other.topP)
+				&& Objects.equals(this.tools, other.tools) && Objects.equals(this.toolChoice, other.toolChoice)
+				&& Objects.equals(this.user, other.user) && Objects.equals(this.toolCallbacks, other.toolCallbacks)
+				&& Objects.equals(this.toolNames, other.toolNames)
+				&& Objects.equals(this.toolContext, other.toolContext)
+				&& Objects.equals(this.internalToolExecutionEnabled, other.internalToolExecutionEnabled);
+	}
+
+	@Override
+	public String toString() {
+		return "MoonshotChatOptions: " + ModelOptionsUtils.toJsonString(this);
 	}
 
 	public static class Builder {
 
-		private final MoonshotChatOptions options = new MoonshotChatOptions();
+		protected MoonshotChatOptions options;
+
+		public Builder() {
+			this.options = new MoonshotChatOptions();
+		}
+
+		public Builder(MoonshotChatOptions options) {
+			this.options = options;
+		}
 
 		public Builder model(String model) {
 			this.options.model = model;
 			return this;
 		}
 
+		public Builder model(MoonshotApi.ChatModel moonshotChatModel) {
+			this.options.model = moonshotChatModel.getName();
+			return this;
+		}
+
+		public Builder frequencyPenalty(Double frequencyPenalty) {
+			this.options.frequencyPenalty = frequencyPenalty;
+			return this;
+		}
+
 		public Builder maxTokens(Integer maxTokens) {
 			this.options.maxTokens = maxTokens;
-			return this;
-		}
-
-		public Builder temperature(Double temperature) {
-			this.options.temperature = temperature;
-			return this;
-		}
-
-		public Builder topP(Double topP) {
-			this.options.topP = topP;
 			return this;
 		}
 
@@ -449,18 +402,18 @@ public class MoonshotChatOptions implements FunctionCallingOptions {
 			return this;
 		}
 
-		public Builder frequencyPenalty(Double frequencyPenalty) {
-			this.options.frequencyPenalty = frequencyPenalty;
-			return this;
-		}
-
 		public Builder stop(List<String> stop) {
 			this.options.stop = stop;
 			return this;
 		}
 
-		public Builder user(String user) {
-			this.options.user = user;
+		public Builder temperature(Double temperature) {
+			this.options.temperature = temperature;
+			return this;
+		}
+
+		public Builder topP(Double topP) {
+			this.options.topP = topP;
 			return this;
 		}
 
@@ -474,28 +427,36 @@ public class MoonshotChatOptions implements FunctionCallingOptions {
 			return this;
 		}
 
-		public Builder functionCallbacks(List<FunctionCallback> functionCallbacks) {
-			this.options.functionCallbacks = functionCallbacks;
+		public Builder user(String user) {
+			this.options.user = user;
 			return this;
 		}
 
-		public Builder functions(Set<String> functionNames) {
-			Assert.notNull(functionNames, "Function names must not be null");
-			this.options.functions = functionNames;
+		public Builder toolCallbacks(List<ToolCallback> toolCallbacks) {
+			this.options.setToolCallbacks(toolCallbacks);
 			return this;
 		}
 
-		public Builder function(String functionName) {
-			Assert.hasText(functionName, "Function name must not be empty");
-			if (this.options.functions == null) {
-				this.options.functions = new HashSet<>();
-			}
-			this.options.functions.add(functionName);
+		public Builder toolCallbacks(ToolCallback... toolCallbacks) {
+			Assert.notNull(toolCallbacks, "toolCallbacks cannot be null");
+			this.options.toolCallbacks.addAll(Arrays.asList(toolCallbacks));
 			return this;
 		}
 
-		public Builder proxyToolCalls(Boolean proxyToolCalls) {
-			this.options.proxyToolCalls = proxyToolCalls;
+		public Builder toolNames(Set<String> toolNames) {
+			Assert.notNull(toolNames, "toolNames cannot be null");
+			this.options.setToolNames(toolNames);
+			return this;
+		}
+
+		public Builder toolNames(String... toolNames) {
+			Assert.notNull(toolNames, "toolNames cannot be null");
+			this.options.toolNames.addAll(Set.of(toolNames));
+			return this;
+		}
+
+		public Builder internalToolExecutionEnabled(@Nullable Boolean internalToolExecutionEnabled) {
+			this.options.setInternalToolExecutionEnabled(internalToolExecutionEnabled);
 			return this;
 		}
 

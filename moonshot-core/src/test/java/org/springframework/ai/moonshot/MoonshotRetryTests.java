@@ -16,20 +16,14 @@
 
 package org.springframework.ai.moonshot;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import reactor.core.publisher.Flux;
-
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.moonshot.api.MoonshotApi;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletion;
-import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionChunk;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionFinishReason;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.Role;
@@ -41,6 +35,9 @@ import org.springframework.retry.RetryCallback;
 import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
+
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -67,22 +64,21 @@ public class MoonshotRetryTests {
 		this.retryListener = new TestRetryListener();
 		retryTemplate.registerListener(this.retryListener);
 
-		this.chatModel = new MoonshotChatModel(this.moonshotApi,
-				MoonshotChatOptions.builder()
-					.temperature(0.7)
-					.topP(1.0)
-					.model(MoonshotApi.ChatModel.MOONSHOT_V1_32K.getValue())
-					.build(),
-				null, retryTemplate);
+		this.chatModel = MoonshotChatModel.builder()
+			.moonshotApi(this.moonshotApi)
+			.defaultOptions(MoonshotChatOptions.builder().build())
+			.retryTemplate(retryTemplate)
+			.build();
+		;
 	}
 
 	@Test
 	public void moonshotChatTransientError() {
 
-		var choice = new ChatCompletion.Choice(0, new ChatCompletionMessage("Response", Role.ASSISTANT),
-				ChatCompletionFinishReason.STOP, null);
-		ChatCompletion expectedChatCompletion = new ChatCompletion("id", "chat.completion", 789L, "model",
-				List.of(choice), new MoonshotApi.Usage(10, 10, 10));
+		var choice = new ChatCompletion.Choice(ChatCompletionFinishReason.STOP, 0,
+				new ChatCompletionMessage("Response", Role.ASSISTANT), null);
+		ChatCompletion expectedChatCompletion = new ChatCompletion("id", List.of(choice), 789L, "model",
+				"chat.completion", new MoonshotApi.Usage(10, 10, 10));
 
 		given(this.moonshotApi.chatCompletionEntity(isA(ChatCompletionRequest.class)))
 			.willThrow(new TransientAiException("Transient Error 1"))
@@ -107,20 +103,20 @@ public class MoonshotRetryTests {
 	@Test
 	public void moonshotChatStreamTransientError() {
 
-		var choice = new ChatCompletionChunk.ChunkChoice(0, new ChatCompletionMessage("Response", Role.ASSISTANT),
-				ChatCompletionFinishReason.STOP, null);
-		ChatCompletionChunk expectedChatCompletion = new ChatCompletionChunk("id", "chat.completion.chunk", 789L,
-				"model", List.of(choice));
+		var choice = new ChatCompletion.Choice(ChatCompletionFinishReason.STOP, 0,
+				new ChatCompletionMessage("Response", Role.ASSISTANT), null);
+		ChatCompletion expectedChatCompletion = new ChatCompletion("id", List.of(choice), 666L, "model",
+				"chat.completion", new MoonshotApi.Usage(10, 10, 10));
 
-		given(this.moonshotApi.chatCompletionStream(isA(ChatCompletionRequest.class)))
+		given(this.moonshotApi.chatCompletionEntity(isA(ChatCompletionRequest.class)))
 			.willThrow(new TransientAiException("Transient Error 1"))
 			.willThrow(new TransientAiException("Transient Error 2"))
-			.willReturn(Flux.just(expectedChatCompletion));
+			.willReturn(ResponseEntity.of(Optional.of(expectedChatCompletion)));
 
-		var result = this.chatModel.stream(new Prompt("text"));
+		var result = this.chatModel.call(new Prompt("text"));
 
 		assertThat(result).isNotNull();
-		assertThat(result.collectList().block().get(0).getResult().getOutput().getText()).isSameAs("Response");
+		assertThat(result.getResult().getOutput().getText()).isSameAs("Response");
 		assertThat(this.retryListener.onSuccessRetryCount).isEqualTo(2);
 		assertThat(this.retryListener.onErrorRetryCount).isEqualTo(2);
 	}
