@@ -42,6 +42,7 @@ import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletion.Choice;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.ChatCompletionFunction;
 import org.springframework.ai.moonshot.api.MoonshotApi.ChatCompletionMessage.ToolCall;
 import org.springframework.ai.retry.RetryUtils;
+import org.springframework.ai.support.UsageCalculator;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.http.ResponseEntity;
 import org.springframework.retry.support.RetryTemplate;
@@ -191,7 +192,8 @@ public class MoonshotChatModel implements ChatModel, StreamingChatModel {
 				// Current usage
 				MoonshotApi.Usage usage = completionEntity.getBody().usage();
 				Usage currentChatResponseUsage = usage != null ? getDefaultUsage(usage) : new EmptyUsage();
-				Usage accumulatedUsage = UsageUtils.getCumulativeUsage(currentChatResponseUsage, previousChatResponse);
+				Usage accumulatedUsage = UsageCalculator.getCumulativeUsage(currentChatResponseUsage,
+						previousChatResponse);
 				ChatResponse chatResponse = new ChatResponse(generations,
 						from(completionEntity.getBody(), accumulatedUsage));
 
@@ -277,7 +279,7 @@ public class MoonshotChatModel implements ChatModel, StreamingChatModel {
 						}).toList();
 						MoonshotApi.Usage usage = chatCompletion2.usage();
 						Usage currentUsage = (usage != null) ? getDefaultUsage(usage) : new EmptyUsage();
-						Usage cumulativeUsage = UsageUtils.getCumulativeUsage(currentUsage, previousChatResponse);
+						Usage cumulativeUsage = UsageCalculator.getCumulativeUsage(currentUsage, previousChatResponse);
 
 						return new ChatResponse(generations, from(chatCompletion2, cumulativeUsage));
 					}
