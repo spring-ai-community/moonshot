@@ -28,7 +28,7 @@ Add the following dependency to your `pom.xml`:
 [source,xml]
 ----
 <dependency>
-    <groupId>org.springaicommunity.moonshot</groupId>
+    <groupId>org.springaicommunity</groupId>
     <artifactId>moonshot-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -41,7 +41,7 @@ Add the following dependency to your `build.gradle`:
 [source,groovy]
 ----
 dependencies {
-    implementation 'org.springaicommunity.moonshot:moonshot-core:0.1.0-SNAPSHOT'
+    implementation 'org.springaicommunity:moonshot-core:0.1.0-SNAPSHOT'
 }
 ----
 

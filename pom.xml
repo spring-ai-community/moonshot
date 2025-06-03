@@ -4,12 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.springaicommunity.moonshot</groupId>
+    <groupId>org.springaicommunity</groupId>
     <artifactId>moonshot-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
     <name>Moonshot AI Parent</name>
+
     <description>Moonshot AI Java Client</description>
+
     <url>https://github.com/spring-ai-community/moonshot</url>
 
     <licenses>
@@ -25,6 +28,17 @@
         <developerConnection>git@github.com:spring-ai-community/moonshot.git</developerConnection>
     </scm>
 
+    <developers>
+        <developer>
+            <id>gr</id>
+            <name>GengRong</name>
+            <email>gr@fastball.dev</email>
+            <roles>
+                <role>lead</role>
+            </roles>
+        </developer>
+    </developers>
+
     <modules>
         <module>moonshot-core</module>
         <module>docs</module>
@@ -34,29 +48,17 @@
 
     <profiles>
         <profile>
-            <id>sonatype</id>
-            <properties>
-                <maven.test.skip>true</maven.test.skip>
-            </properties>
-            <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
-                <repository>
-                    <id>ossrh</id>
-                    <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
-                </repository>
-            </distributionManagement>
+            <id>release</id>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.sonatype.central</groupId>
                         <artifactId>central-publishing-maven-plugin</artifactId>
-                        <version>0.6.0</version>
+                        <version>0.7.0</version>
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
+                            <autoPublish>true</autoPublish>
                         </configuration>
                     </plugin>
                     <plugin>
