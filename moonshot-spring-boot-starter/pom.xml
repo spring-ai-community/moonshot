@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.ai.moonshot</groupId>
+        <groupId>org.springaicommunity.moonshot</groupId>
         <artifactId>moonshot-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
@@ -24,14 +24,14 @@
     <dependencies>
         <!-- Core dependencies -->
         <dependency>
-            <groupId>org.springframework.ai.moonshot</groupId>
+            <groupId>org.springaicommunity.moonshot</groupId>
             <artifactId>moonshot-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         
         <!-- Spring Boot Autoconfiguration -->
         <dependency>
-            <groupId>org.springframework.ai.moonshot</groupId>
+            <groupId>org.springaicommunity.moonshot</groupId>
             <artifactId>spring-ai-autoconfigure-model-moonshot</artifactId>
             <version>${project.parent.version}</version>
         </dependency>

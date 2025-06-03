@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.springframework.ai.moonshot</groupId>
+    <groupId>org.springaicommunity.moonshot</groupId>
     <artifactId>moonshot-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -32,6 +32,52 @@
         <module>moonshot-spring-boot-starter</module>
     </modules>
 
+    <profiles>
+        <profile>
+            <id>sonatype</id>
+            <properties>
+                <maven.test.skip>true</maven.test.skip>
+            </properties>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>ossrh</id>
+                    <url>https://s01.oss.sonatype.org/content/repositories/snapshots</url>
+                </snapshotRepository>
+                <repository>
+                    <id>ossrh</id>
+                    <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
+                </repository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.6.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.5</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <properties>
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -45,12 +91,12 @@
         <micrometer.version>1.12.2</micrometer.version>
         <reactor.version>2023.0.2</reactor.version>
         <slf4j.version>2.0.9</slf4j.version>
-        
+
         <!-- Test dependency versions -->
         <junit-jupiter.version>5.10.1</junit-jupiter.version>
         <mockito.version>5.7.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
-        
+
         <!-- Plugin versions -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.1.2</maven-surefire-plugin.version>

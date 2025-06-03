@@ -50,7 +50,7 @@ Add the following dependency to your project:
 
 ```xml
 <dependency>
-    <groupId>org.springframework.ai.moonshot</groupId>
+    <groupId>org.springaicommunity.moonshot</groupId>
     <artifactId>moonshot-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>

@@ -47,7 +47,7 @@ Add the following dependency to your `pom.xml`:
 [source,xml]
 ----
 <dependency>
-    <groupId>org.springframework.ai.moonshot</groupId>
+    <groupId>org.springaicommunity.moonshot</groupId>
     <artifactId>moonshot-core</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -60,7 +60,7 @@ Add the following dependency to your `build.gradle`:
 [source,groovy]
 ----
 dependencies {
-    implementation 'org.springframework.ai.moonshot:moonshot-core:0.1.0-SNAPSHOT'
+    implementation 'org.springaicommunity.moonshot:moonshot-core:0.1.0-SNAPSHOT'
 }
 ----
 
@@ -73,9 +73,9 @@ Here's a simple example of using the Moonshot AI Java Client:
 import org.springframework.ai.chat.ChatResponse;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.moonshot.MoonshotChatModel;
-import org.springframework.ai.moonshot.MoonshotChatOptions;
-import org.springframework.ai.moonshot.api.MoonshotApi;
+import org.springaicommunity.moonshot.MoonshotChatModel;
+import org.springaicommunity.moonshot.MoonshotChatOptions;
+import api.org.springaicommunity.moonshot.MoonshotApi;
 
 public class MoonshotQuickStart {
 
