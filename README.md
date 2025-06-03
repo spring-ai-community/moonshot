@@ -1,4 +1,4 @@
-# Moonshot AI Java Client
+# Moonshot AI Java Client [![Maven Central Version](https://img.shields.io/maven-central/v/org.springaicommunity/moonshot-core)](https://central.sonatype.com/artifact/org.springaicommunity/moonshot-core/)
 
 This project provides a Java client for the Moonshot AI API. It is based on the Spring AI project's Moonshot integration and has been extracted to be used as a standalone library.
 
@@ -52,7 +52,7 @@ Add the following dependency to your project:
 <dependency>
     <groupId>org.springaicommunity</groupId>
     <artifactId>moonshot-core</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>last-version</version>
 </dependency>
 ```
 
